@@ -2,10 +2,16 @@ package com.crotsertech.waterairandyoumvp.platform
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import platform.Foundation.NSError
 import platform.Foundation.NSURL
 import platform.Foundation.NSUUID
 import platform.UIKit.UIApplication
+import platform.UIKit.UIDevice
 import platform.UserNotifications.UNAuthorizationOptionAlert
 import platform.UserNotifications.UNAuthorizationOptionBadge
 import platform.UserNotifications.UNAuthorizationOptionSound
@@ -61,5 +67,34 @@ actual fun showLocalNotification(title: String, body: String) {
                 println("Failed to show notification: $error")
             }
         }
+    }
+}
+
+object BackgroundPoller {
+    fun pollOnce(onComplete: (Boolean) -> Unit) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        scope.launch {
+            try {
+                com.crotsertech.waterairandyoumvp.notification.NotificationScheduler.pollAndNotify()
+                onComplete(true)
+            } catch (e: Exception) {
+                println("Background poll failed: ${e.message}")
+                onComplete(false)
+            } finally {
+                scope.cancel()
+            }
+        }
+    }
+}
+
+actual fun getDeviceInfo(): String {
+    val device = UIDevice.currentDevice
+    val appVersion = platform.Foundation.NSBundle.mainBundle.infoDictionary?.get("CFBundleShortVersionString") as? String ?: "?"
+    val osBuild = platform.Foundation.NSProcessInfo.processInfo.operatingSystemVersionString
+    return buildString {
+        appendLine("App version: $appVersion")
+        appendLine("OS: ${device.systemName()} ${device.systemVersion()}")
+        appendLine("Build: $osBuild")
+        append("Device: ${device.model}")
     }
 }

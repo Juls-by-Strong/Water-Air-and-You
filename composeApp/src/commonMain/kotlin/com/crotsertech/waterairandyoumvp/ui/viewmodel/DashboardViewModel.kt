@@ -36,7 +36,15 @@ class DashboardViewModel : ViewModel() {
     }
 
     fun refresh() {
-        loadData()
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
+            _uiState.value = DashboardUiState.Loading
+            if (ApiService.refreshAccessToken()) {
+                fetchData()
+            } else {
+                ApiService.logout()
+            }
+        }
     }
 
     private suspend fun fetchData() = withContext(Dispatchers.Default) {

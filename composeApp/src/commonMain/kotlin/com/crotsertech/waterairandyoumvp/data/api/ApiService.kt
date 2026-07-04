@@ -13,6 +13,8 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -29,6 +31,8 @@ object ApiService {
 
     private val _currentCustomer = MutableStateFlow<Customer?>(null)
     val currentCustomer = _currentCustomer.asStateFlow()
+
+    private val refreshMutex = Mutex()
 
     // Separate client for auth to avoid infinite loops/deadlocks in Auth plugin
     private val authClient = createPlatformHttpClient {
@@ -161,7 +165,7 @@ object ApiService {
             val response = withTimeout(35_000) { block() }
             val status = response.status.value
             if (status == 401 && !response.request.url.segments.any { it == "auth" }) {
-                val refreshed = refreshAccessToken()
+                val refreshed = refreshMutex.withLock { refreshAccessToken() }
                 if (refreshed) {
                     val retryResponse = withTimeout(35_000) { block() }
                     return handleResponse<T>(retryResponse)
@@ -176,7 +180,7 @@ object ApiService {
         }
     }
 
-    private suspend fun refreshAccessToken(): Boolean {
+    suspend fun refreshAccessToken(): Boolean {
         val refreshToken = TokenRepository.refreshToken
         if (refreshToken.isBlank()) return false
         return try {

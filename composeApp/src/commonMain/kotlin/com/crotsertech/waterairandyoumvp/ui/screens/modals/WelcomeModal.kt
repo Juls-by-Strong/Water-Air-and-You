@@ -10,6 +10,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.crotsertech.waterairandyoumvp.theme.LocalThemeState
+import com.crotsertech.waterairandyoumvp.theme.glow
 import com.crotsertech.waterairandyoumvp.ui.components.WayModal
 
 @Composable
@@ -50,10 +51,10 @@ fun WelcomeModal(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ThemeQuickButton("SNEP", isActive = !themeState.useMetro && !themeState.useDark, modifier = Modifier.weight(1f)) {
+                ThemeQuickButton("SNEP Light", isActive = !themeState.useMetro && !themeState.useDark, modifier = Modifier.weight(1f)) {
                     themeState.onThemeChanged(false, false)
                 }
-                ThemeQuickButton("METRO", isActive = themeState.useMetro && !themeState.useDark, modifier = Modifier.weight(1f)) {
+                ThemeQuickButton("METRO Light", isActive = themeState.useMetro && !themeState.useDark, modifier = Modifier.weight(1f)) {
                     themeState.onThemeChanged(true, false)
                 }
             }
@@ -78,23 +79,29 @@ fun WelcomeModal(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (step > 0) {
-                OutlinedButton(onClick = { step-- }) {
-                    Text("Back")
+                Box(Modifier.padding(vertical = 4.dp).glow(), contentAlignment = Alignment.Center) {
+                    OutlinedButton(onClick = { step-- }) {
+                        Text("Back")
+                    }
                 }
             } else {
                 Spacer(Modifier.width(1.dp))
             }
 
             if (step < steps.size - 1) {
-                Button(onClick = { step++ }) {
-                    Text("Next")
+                Box(Modifier.padding(vertical = 4.dp).glow(), contentAlignment = Alignment.Center) {
+                    Button(onClick = { step++ }) {
+                        Text("Next")
+                    }
                 }
             } else {
-                Button(onClick = {
-                    onDismiss()
-                    if (step >= 2) onStartTour()
-                }) {
-                    Text("Get Started")
+                Box(Modifier.padding(vertical = 4.dp).glow(), contentAlignment = Alignment.Center) {
+                    Button(onClick = {
+                        onDismiss()
+                        if (step >= 2) onStartTour()
+                    }) {
+                        Text("Get Started")
+                    }
                 }
             }
         }

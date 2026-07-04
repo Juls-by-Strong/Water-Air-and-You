@@ -1,13 +1,23 @@
 package com.crotsertech.waterairandyoumvp.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -368,3 +378,21 @@ object WayTheme {
         @Composable
         get() = LocalWayColors.current
 }
+
+@Composable
+fun Modifier.glow(glowColor: Color = WayTheme.colors.glowColor): Modifier = this.then(
+    if (glowColor != Color.Transparent) {
+        Modifier.drawBehind {
+            val gRadius = size.width.coerceAtMost(size.height) * 0.9f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(glowColor.copy(alpha = 0.5f), glowColor.copy(alpha = 0f)),
+                    center = Offset(size.width / 2f, size.height / 2f),
+                    radius = gRadius
+                ),
+                radius = gRadius,
+                center = Offset(size.width / 2f, size.height / 2f)
+            )
+        }
+    } else Modifier
+)

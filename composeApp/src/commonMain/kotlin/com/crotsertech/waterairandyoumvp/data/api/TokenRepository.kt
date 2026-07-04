@@ -64,6 +64,14 @@ object TokenRepository {
         get() = settings.getBoolean("theme_dark", false)
         set(value) { settings.putBoolean("theme_dark", value) }
 
+    var saltReminderIntervalDays: Int
+        get() = settings.getInt("salt_interval", 30)
+        set(value) { settings.putInt("salt_interval", value) }
+
+    var saltLastResetEpochMs: Long
+        get() = settings.getLong("salt_last_reset", 0L)
+        set(value) { settings.putLong("salt_last_reset", value) }
+
     fun clearTokens() {
         accessToken = ""
         refreshToken = ""

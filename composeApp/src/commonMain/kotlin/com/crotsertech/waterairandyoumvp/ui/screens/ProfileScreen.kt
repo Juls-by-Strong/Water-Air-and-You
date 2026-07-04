@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.crotsertech.waterairandyoumvp.theme.LocalThemeState
+import com.crotsertech.waterairandyoumvp.ui.components.BugReportButton
 import com.crotsertech.waterairandyoumvp.ui.components.ToastManager
 import com.crotsertech.waterairandyoumvp.ui.components.ToastType
 import com.crotsertech.waterairandyoumvp.ui.viewmodel.ProfileUiState
@@ -197,12 +198,12 @@ private fun ThemePickerCard() {
             Spacer(Modifier.height(8.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ThemeButton(emoji = "🌙", label = "Snep Dark", desc = "Easy on the eyes", isActive = !themeState.useMetro && themeState.useDark, isMetro = false, isDark = true, modifier = Modifier.weight(1f))
-                    ThemeButton(emoji = "☀️", label = "Snep Light", desc = "Warm & bright", isActive = !themeState.useMetro && !themeState.useDark, isMetro = false, isDark = false, modifier = Modifier.weight(1f))
+                    ThemeButton(emoji = "🌙", label = "SNEP Dark", desc = "Easy on the eyes", isActive = !themeState.useMetro && themeState.useDark, isMetro = false, isDark = true, modifier = Modifier.weight(1f))
+                    ThemeButton(emoji = "☀️", label = "SNEP Light", desc = "Warm & bright", isActive = !themeState.useMetro && !themeState.useDark, isMetro = false, isDark = false, modifier = Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ThemeButton(emoji = "🌆", label = "Metro Dark", desc = "Sleek & sharp", isActive = themeState.useMetro && themeState.useDark, isMetro = true, isDark = true, modifier = Modifier.weight(1f))
-                    ThemeButton(emoji = "🏙️", label = "Metro Light", desc = "Clean & minimal", isActive = themeState.useMetro && !themeState.useDark, isMetro = true, isDark = false, modifier = Modifier.weight(1f))
+                    ThemeButton(emoji = "🌆", label = "METRO Dark", desc = "Sleek & sharp", isActive = themeState.useMetro && themeState.useDark, isMetro = true, isDark = true, modifier = Modifier.weight(1f))
+                    ThemeButton(emoji = "🏙️", label = "METRO Light", desc = "Clean & minimal", isActive = themeState.useMetro && !themeState.useDark, isMetro = true, isDark = false, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -304,12 +305,7 @@ private fun FeedbackCard() {
             Text("Feedback", fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight(600), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { openUrl("https://github.com/Juls-by-Strong/Water-Air-and-You/issues/new?labels=bug") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Report a Bug", fontSize = 12.sp)
-                }
+                BugReportButton(modifier = Modifier.weight(1f))
                 OutlinedButton(
                     onClick = { openUrl("https://github.com/Juls-by-Strong/Water-Air-and-You/issues/new?labels=enhancement") },
                     modifier = Modifier.weight(1f)

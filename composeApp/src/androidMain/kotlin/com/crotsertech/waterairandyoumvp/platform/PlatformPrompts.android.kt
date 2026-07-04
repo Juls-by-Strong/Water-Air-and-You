@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -67,4 +68,17 @@ actual fun showLocalNotification(title: String, body: String) {
 
     val notificationId = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
     manager.notify(notificationId, notification)
+}
+
+actual fun getDeviceInfo(): String {
+    val versionName = try {
+        val pkg = AndroidApp.context.packageManager.getPackageInfo(AndroidApp.context.packageName, 0)
+        pkg.versionName ?: "?"
+    } catch (_: Exception) { "?" }
+    return buildString {
+        appendLine("App version: $versionName")
+        appendLine("OS: Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+        appendLine("Build: ${Build.VERSION.INCREMENTAL}")
+        append("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
+    }
 }

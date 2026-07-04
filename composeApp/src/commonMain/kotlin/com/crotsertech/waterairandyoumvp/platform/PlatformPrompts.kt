@@ -9,3 +9,5 @@ expect fun rememberNotificationPermissionRequester(): () -> Unit
 expect fun rememberUrlOpener(): (String) -> Unit
 
 expect fun showLocalNotification(title: String, body: String)
+
+expect fun getDeviceInfo(): String

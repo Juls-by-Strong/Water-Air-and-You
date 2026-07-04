@@ -30,9 +30,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.crotsertech.waterairandyoumvp.data.api.TokenRepository
 import com.crotsertech.waterairandyoumvp.data.model.Equipment
 import com.crotsertech.waterairandyoumvp.data.model.DueStatus
-import com.crotsertech.waterairandyoumvp.platform.rememberUrlOpener
+import com.crotsertech.waterairandyoumvp.theme.glow
+import com.crotsertech.waterairandyoumvp.ui.components.BugReportButton
+import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import com.crotsertech.waterairandyoumvp.ui.viewmodel.DashboardUiState
 import com.crotsertech.waterairandyoumvp.ui.viewmodel.DashboardViewModel
 import com.crotsertech.waterairandyoumvp.ui.viewmodel.EquipmentGroup
@@ -65,6 +72,207 @@ private fun statusColor(status: EqDueStatus): Color = when (status) {
     EqDueStatus.Attention -> Yellow
     EqDueStatus.DueNow -> Red
     EqDueStatus.Overdue -> Black
+}
+
+@Composable
+private fun SaltReminderCard() {
+    var expanded by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var tick by remember { mutableStateOf(0) }
+    var resetSignal by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            tick++
+        }
+    }
+
+    val intervalDays = TokenRepository.saltReminderIntervalDays
+    val lastResetEpochMs = remember(resetSignal, tick) {
+        if (TokenRepository.saltLastResetEpochMs == 0L) {
+            val now = Clock.System.now().toEpochMilliseconds()
+            TokenRepository.saltLastResetEpochMs = now
+            now
+        } else {
+            TokenRepository.saltLastResetEpochMs
+        }
+    }
+
+    val nowMs = remember(tick) { Clock.System.now().toEpochMilliseconds() }
+    val elapsedMs = nowMs - lastResetEpochMs
+    val elapsedDays = (elapsedMs / 86_400_000L).toInt()
+    val daysRemaining = (intervalDays - elapsedDays).coerceAtLeast(0)
+    val isOverdue = elapsedDays >= intervalDays
+
+    val dueStatus = when {
+        isOverdue -> DueStatus.Overdue
+        daysRemaining <= 7 -> DueStatus.Soon
+        else -> DueStatus.Ok
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        elevation = cardElevation()
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(16.dp, 14.dp, 16.dp, 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                    Text("\uD83E\uDDCA", fontSize = 20.sp)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Salt Level", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        if (isOverdue) "Overdue by ${elapsedDays - intervalDays} days"
+                        else "$daysRemaining days remaining",
+                        fontSize = 12.sp,
+                        color = if (isOverdue) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (dueStatus != DueStatus.Unknown) {
+                    StatusBadge(dueStatus.name, dueStatus)
+                }
+                Spacer(Modifier.width(4.dp))
+                Box(Modifier.size(32.dp).clickable { showSettings = true }, contentAlignment = Alignment.Center) {
+                    Text("\u2699\uFE0F", fontSize = 16.sp)
+                }
+                Text(if (expanded) "\u25B2" else "\u25BC", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            val fillFraction = if (isOverdue) 1f else (elapsedDays.toFloat() / intervalDays).coerceIn(0f, 1f)
+            val barColor = when {
+                isOverdue -> MaterialTheme.colorScheme.error
+                daysRemaining <= 7 -> MaterialTheme.colorScheme.tertiary
+                else -> MaterialTheme.colorScheme.primary
+            }
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(fillFraction).fillMaxHeight()
+                        .clip(RoundedCornerShape(3.dp)).background(barColor)
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = if (com.crotsertech.waterairandyoumvp.theme.WayTheme.colors.isMetro) EnterTransition.None
+                        else fadeIn(animationSpec = tween(250)) + expandVertically(animationSpec = tween(250)),
+                exit = if (com.crotsertech.waterairandyoumvp.theme.WayTheme.colors.isMetro) ExitTransition.None
+                        else fadeOut(animationSpec = tween(200)) + shrinkVertically(animationSpec = tween(200))
+            ) {
+                Column {
+                    HorizontalDivider()
+                    Row(
+                        Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        DateCol("Check every", "${intervalDays} days")
+                        DateCol("Last check", formatEpochMs(lastResetEpochMs))
+                        DateCol("Next check", formatEpochMs(lastResetEpochMs + intervalDays * 86_400_000L))
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        OutlinedButton(onClick = {
+                            val now = Clock.System.now().toEpochMilliseconds()
+                            TokenRepository.saltLastResetEpochMs = now
+                            resetSignal = now
+                        }) {
+                            Text("Mark as checked", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showSettings) {
+        SaltSettingsDialog(
+            currentInterval = intervalDays,
+            onIntervalChange = { TokenRepository.saltReminderIntervalDays = it },
+            onReset = {
+                val now = Clock.System.now().toEpochMilliseconds()
+                TokenRepository.saltLastResetEpochMs = now
+                resetSignal = now
+            },
+            onDismiss = { showSettings = false }
+        )
+    }
+}
+
+@Composable
+private fun SaltSettingsDialog(
+    currentInterval: Int,
+    onIntervalChange: (Int) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedInterval by remember { mutableStateOf(currentInterval) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Salt Reminder Settings") },
+        text = {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Salt Reminder", modifier = Modifier.weight(1f))
+                    Switch(checked = true, onCheckedChange = null, enabled = false)
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("Remind me every:", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                Spacer(Modifier.height(4.dp))
+                listOf(30, 60, 90).forEach { days ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { onIntervalChange(days); selectedInterval = days }.padding(vertical = 4.dp)
+                    ) {
+                        RadioButton(
+                            selected = selectedInterval == days,
+                            onClick = { onIntervalChange(days); selectedInterval = days }
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("$days days", fontSize = 14.sp)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Connect electronic salt monitor", fontSize = 13.sp)
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onReset,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Reset countdown", fontSize = 13.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        }
+    )
+}
+
+private fun formatEpochMs(epochMs: Long): String {
+    val instant = kotlinx.datetime.Instant.fromEpochMilliseconds(epochMs)
+    val local = instant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+    return "${local.month.name.take(3)} ${local.dayOfMonth}"
 }
 
 @Composable
@@ -110,13 +318,9 @@ fun DashboardScreen(
                             onContactUs = onContactUs
                         )
                     }
-                    if (state.pollData.appointments.isNotEmpty()) {
-                        item { Spacer(Modifier.height(4.dp)) }
-                        item { SectionLabel("Upcoming") }
-                        items(state.pollData.appointments) { appt ->
-                            AppointmentCard(appt, onNavigateToAppointments)
-                        }
-                    }
+                    item { Spacer(Modifier.height(4.dp)) }
+                    item { SectionLabel("Salt level") }
+                    item { SaltReminderCard() }
                     val dueGroups = state.groups
                         .filter { group ->
                             group.parent.days_until_due != null ||
@@ -130,11 +334,17 @@ fun DashboardScreen(
                             DashboardExpandableCard(group.parent, group.subComponents, onServiceHistory = { onServiceHistory(group.parent) })
                         }
                     }
+                    if (state.pollData.appointments.isNotEmpty()) {
+                        item { Spacer(Modifier.height(4.dp)) }
+                        item { SectionLabel("Upcoming") }
+                        items(state.pollData.appointments) { appt ->
+                            AppointmentCard(appt, onNavigateToAppointments)
+                        }
+                    }
                     item { Spacer(Modifier.height(16.dp)) }
                 }
             }
             is DashboardUiState.Error -> {
-                val openUrl = rememberUrlOpener()
                 val isSessionExpired = state.message.contains("Session timed out", ignoreCase = true)
                 Column(
                     Modifier.fillMaxSize(),
@@ -152,17 +362,13 @@ fun DashboardScreen(
                             Text("Log Out")
                         }
                         Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = { openUrl("https://github.com/Juls-by-Strong/Water-Air-and-You/issues/new?labels=bug") }) {
-                            Text("Report a Bug")
-                        }
+                        BugReportButton(errorContext = state.message)
                     } else {
                         Button(onClick = { viewModel.loadData() }) {
                             Text("Retry")
                         }
                         Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = { openUrl("https://github.com/Juls-by-Strong/Water-Air-and-You/issues/new?labels=bug") }) {
-                            Text("Report a Bug")
-                        }
+                        BugReportButton(errorContext = state.message)
                     }
                 }
             }
@@ -303,11 +509,11 @@ private fun HealthTiles(
         ) {
             HealthTile(
                 label = "Balance",
-                value = if (pollData.unpaid_count > 0) "${pollData.unpaid_count} ${if (pollData.unpaid_count == 1) "invoice" else "invoices"}" else "None",
-                sub = if (pollData.unpaid_count > 0) "Tap to view" else "All paid",
+                value = if (pollData.unpaidCount > 0) "${pollData.unpaidCount} ${if (pollData.unpaidCount == 1) "invoice" else "invoices"}" else "None",
+                sub = if (pollData.unpaidCount > 0) "Tap to view" else "All paid",
                 modifier = Modifier.weight(1f),
                 onClick = onInvoices,
-                valueColor = if (pollData.unpaid_count > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                valueColor = if (pollData.unpaidCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
             )
             HealthTile(
                 label = "Water",
@@ -321,7 +527,7 @@ private fun HealthTiles(
 }
 
 @Composable
-private fun cardElevation() = if (com.crotsertech.waterairandyoumvp.theme.WayTheme.colors.isMetro) {
+private fun cardElevation() = if (com.crotsertech.waterairandyoumvp.theme.WayTheme.colors.isMetro || com.crotsertech.waterairandyoumvp.theme.WayTheme.colors.isDark) {
     CardDefaults.cardElevation(defaultElevation = 0.dp)
 } else {
     CardDefaults.cardElevation(defaultElevation = 4.dp)

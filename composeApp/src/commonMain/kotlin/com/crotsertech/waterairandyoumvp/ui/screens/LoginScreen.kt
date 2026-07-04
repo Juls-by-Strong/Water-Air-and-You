@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.crotsertech.waterairandyoumvp.data.api.ApiService
 import com.crotsertech.waterairandyoumvp.data.api.TokenRepository
 import com.crotsertech.waterairandyoumvp.theme.WayTheme
+import com.crotsertech.waterairandyoumvp.theme.glow
 import com.crotsertech.waterairandyoumvp.APP_VERSION
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -74,6 +75,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             email = saved
             password = TokenRepository.savedPassword
             rememberMe = true
+            isLoading = true
+            api.login(email, password).also { isLoading = false }
+                .onSuccess { onLoginSuccess() }
+                .onFailure { errorMessage = "Auto-login failed. Please sign in manually." }
         }
     }
 
@@ -179,25 +184,27 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center)
                         }
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = {
-                            if (isValid && !isLoading) {
-                                isLoading = true; errorMessage = null
-                                scope.launch {
-                                    api.login(email, password).also { isLoading = false }
-                                        .onSuccess {
-                                            if (rememberMe) TokenRepository.saveCredentials(email, password)
-                                            else TokenRepository.clearCredentials()
-                                            onLoginSuccess()
-                                        }.onFailure { 
-                                            println("LOGIN_ERROR: ${it.message}")
-                                            errorMessage = it.message ?: "Login failed. Please try again." 
-                                        }
+                        Box(Modifier.fillMaxWidth().padding(vertical = 6.dp).glow(), contentAlignment = Alignment.Center) {
+                            Button(onClick = {
+                                if (isValid && !isLoading) {
+                                    isLoading = true; errorMessage = null
+                                    scope.launch {
+                                        api.login(email, password).also { isLoading = false }
+                                            .onSuccess {
+                                                if (rememberMe) TokenRepository.saveCredentials(email, password)
+                                                else TokenRepository.clearCredentials()
+                                                onLoginSuccess()
+                                            }.onFailure { 
+                                                println("LOGIN_ERROR: ${it.message}")
+                                                errorMessage = it.message ?: "Login failed. Please try again." 
+                                            }
+                                    }
                                 }
+                            }, enabled = isValid && !isLoading,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(0.dp)) {
+                                Text(if (isLoading) "Signing in…" else "Sign In", fontWeight = FontWeight.Medium)
                             }
-                        }, enabled = isValid && !isLoading,
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(0.dp)) {
-                            Text(if (isLoading) "Signing in…" else "Sign In", fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -297,36 +304,37 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         }
                         Spacer(Modifier.height(16.dp))
                         // Glossy aqua gel button
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .clip(RoundedCornerShape(9999.dp))
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color(0xFF4DA6FF),
-                                            Color(0xFF007AFF),
-                                            Color(0xFF0055CC)
-                                        )
-                                    )
-                                )
-                                .drawBehind {
-                                    val strokeWidth = 1.dp.toPx()
-                                    val inset = strokeWidth / 2f + 0.5.dp.toPx()
-                                    val path = Path().apply {
-                                        addRoundRect(
-                                            androidx.compose.ui.geometry.RoundRect(
-                                                left = inset, top = inset,
-                                                right = size.width - inset, bottom = size.height - inset,
-                                                radiusX = 9999.dp.toPx() - 0.5.dp.toPx(),
-                                                radiusY = 9999.dp.toPx() - 0.5.dp.toPx()
+                        Box(Modifier.fillMaxWidth().padding(vertical = 6.dp).glow(), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .clip(RoundedCornerShape(9999.dp))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color(0xFF4DA6FF),
+                                                Color(0xFF007AFF),
+                                                Color(0xFF0055CC)
                                             )
                                         )
+                                    )
+                                    .drawBehind {
+                                        val strokeWidth = 1.dp.toPx()
+                                        val inset = strokeWidth / 2f + 0.5.dp.toPx()
+                                        val path = Path().apply {
+                                            addRoundRect(
+                                                androidx.compose.ui.geometry.RoundRect(
+                                                    left = inset, top = inset,
+                                                    right = size.width - inset, bottom = size.height - inset,
+                                                    radiusX = 9999.dp.toPx() - 0.5.dp.toPx(),
+                                                    radiusY = 9999.dp.toPx() - 0.5.dp.toPx()
+                                                )
+                                            )
+                                        }
+                                        drawPath(path, color = Color.White.copy(alpha = 0.35f), style = Stroke(width = strokeWidth))
                                     }
-                                    drawPath(path, color = Color.White.copy(alpha = 0.35f), style = Stroke(width = strokeWidth))
-                                }
-                                .clickable(enabled = isValid && !isLoading) {
+                                    .clickable(enabled = isValid && !isLoading) {
                                     if (isValid && !isLoading) {
                                         isLoading = true; errorMessage = null
                                         scope.launch {
@@ -361,6 +369,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 fontSize = 16.sp,
                                 color = Color.White
                             )
+                        }
                         }
                     }
                 }
