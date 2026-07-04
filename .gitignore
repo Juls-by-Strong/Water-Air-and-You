@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# Gradle
+.gradle/
+build/
+local.properties
+
+# KMP
+.cxx/
+
+# iOS
+iosApp/Pods/
+iosApp/*.xcworkspace
+*.xcuserdata
+
+# Server reference files (live deployment in ~/)
+reference files/
+
+# Generated artifacts
+*.hprof
+*.log
+captures/
+
+# Secrets
+*.env
+.env.local
+*.keystore
+google-services.json
+secrets/

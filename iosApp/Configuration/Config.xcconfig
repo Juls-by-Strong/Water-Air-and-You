@@ -1,0 +1,4 @@
+BUNDLE_ID = com.julsbystrong.waterairandyou
+APP_NAME = Water Air and You
+KOTLIN_FRAMEWORK_BUILD_TYPE = debug
+IPHONEOS_DEPLOYMENT_TARGET = 16.0
